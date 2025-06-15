@@ -1,0 +1,86 @@
+version: "3"
+
+volumes:
+  pg_data:
+  static:
+
+services:
+
+  frontend:
+    env_file: docker.env
+
+    build: ./frontend/
+
+    command: cp -r /app/build/. /static/
+
+    volumes:
+      - static:/static
+
+  db:
+    image: postgres:15
+
+    env_file: docker.env
+
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+    networks:
+      - app_network
+
+    restart: on-failure:3
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 6s
+      retries: 6
+      start_period: 16s
+
+  backend:
+    build: ./backend/
+
+    env_file: docker.env
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    volumes:
+      - static:/static
+
+    ports:
+      - "8000:8000"
+      # Для отладки
+
+    networks:
+      - app_network
+
+    restart: on-failure:2
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 32s
+      timeout: 8s
+      retries: 4
+      start_period: 40s
+
+  gateway:
+    build: ./gateway/
+
+    env_file: docker.env
+
+    ports:
+      - "8080:80"
+
+    volumes:
+      - static:/static
+
+    networks:
+      - app_network
+
+    depends_on:
+      - backend
+
+networks:
+  app_network:
+    driver: bridge

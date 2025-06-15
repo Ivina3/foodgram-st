@@ -1,0 +1,8 @@
+import string
+
+SHORT_LINK_LETTERS = string.ascii_letters + string.digits
+
+MAX_RECIPE_NAME_LENGTH = 256
+
+COOKING_TIME_MIN_VALUE = 1
+INGREDIENTS_COUNT_MIN_VALUE = 1
